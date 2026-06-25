@@ -1,142 +1,227 @@
-# Sessions Frontend Client
+# Full Authentication Flask Backend – Productivity Tool
 
-This React application provides a complete **session-based authentication flow** (sign up, log in, check session, log out). It is designed to connect to your **Flask backend** that manages user state using **Flask sessions**.
-
-You will not need to modify this frontend. However, your backend must implement and support the routes described below for the client to function properly.
+A full-stack productivity application built with **Flask**, **SQLAlchemy**, **React**, and **Flask Sessions**. This project demonstrates secure user authentication, session persistence, protected CRUD operations, pagination, and a React frontend connected to a Flask REST API.
 
 ---
 
-## Getting Started
+## Features
 
-1. **Install dependencies**
-   ```bash
-   npm install
-   ```
+### Authentication
 
-2. **Start the application**
-   ```bash
-   npm start
-   ```
+* User registration (Sign Up)
+* Secure login using Flask Sessions
+* Logout functionality
+* Password hashing with Flask-Bcrypt
+* Session persistence using `/check_session`
+* Protected routes for authenticated users
 
-3. **Backend requirements**
-   - Must use **Flask sessions** to store and manage authentication.
-   - Expose routes that manage login, signup, logout, and session checking.
-   - Should run on port 5555 to match proxy in package.json.
-   - Return JSON responses for all routes.
+### Task Management
 
----
+Each authenticated user manages their own tasks.
 
-## Auth Flow Overview
+Features include:
 
-This app handles user authentication and session state using the following endpoints:
-
----
-
-### POST `/login`
-
-**Description**: Authenticates an existing user and sets the session cookie.  
-**Headers**:
-```json
-{
-  "Content-Type": "application/json"
-}
-```
-
-**Body**:
-```json
-{
-  "username": "string",
-  "password": "string"
-}
-```
-
-**Response**:
-```json
-{
-  "id": 1,
-  "username": "string"
-}
-```
+* Create tasks
+* View paginated tasks
+* Update existing tasks
+* Delete tasks
+* Mark tasks complete/incomplete
+* User-specific authorization
 
 ---
 
-### POST `/signup`
+## Technologies Used
 
-**Description**: Registers a new user and logs them in by setting the session.  
-**Headers**:
-```json
-{
-  "Content-Type": "application/json"
-}
-```
+### Backend
 
-**Body**:
-```json
-{
-  "username": "string",
-  "password": "string",
-  "password_confirmation": "string"
-}
-```
+* Python 3
+* Flask
+* Flask SQLAlchemy
+* Flask Migrate
+* Flask Bcrypt
+* Flask CORS
+* SQLAlchemy Serializer
+* SQLite
 
-**Response**:
-```json
-{
-  "id": 1,
-  "username": "string"
-}
-```
+### Frontend
+
+* React
+* JavaScript
+* Fetch API
 
 ---
 
-### 🔄 GET `/check_session`
+## Database Models
 
-**Description**: Verifies if a user session is active.  
-**Headers**: _(none required)_
+### User
 
-**Response (if logged in)**:
-```json
-{
-  "id": 1,
-  "username": "string"
-}
-```
+* id
+* username
+* email
+* password_hash
 
-**Response (if not logged in)**:
-```json
-{}
-```
+Relationships:
+
+* One User has many Tasks
+
+### Task
+
+* id
+* title
+* description
+* priority
+* completed
+* user_id
+
+Relationships:
+
+* Each Task belongs to one User
 
 ---
 
-### DELETE `/logout`
+## Authentication Endpoints
 
-**Description**: Ends the session by removing `user_id` from the session store.  
-**Headers**: _(none required)_
+| Method | Endpoint         | Description                       |
+| ------ | ---------------- | --------------------------------- |
+| POST   | `/signup`        | Create a new user                 |
+| POST   | `/login`         | Login user                        |
+| DELETE | `/logout`        | Logout current user               |
+| GET    | `/check_session` | Verify active session             |
+| GET    | `/me`            | Return current authenticated user |
 
-**Response**:
-```json
-{}
+---
+
+## Task API
+
+| Method | Endpoint      | Description            |
+| ------ | ------------- | ---------------------- |
+| GET    | `/tasks`      | Return paginated tasks |
+| POST   | `/tasks`      | Create task            |
+| GET    | `/tasks/<id>` | Return single task     |
+| PATCH  | `/tasks/<id>` | Update task            |
+| DELETE | `/tasks/<id>` | Delete task            |
+
+---
+
+## Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/ROUSE-prog/flask-c10-summative-lab-sessions-and-jwt-clients.git
+cd flask-c10-summative-lab-sessions-and-jwt-clients
 ```
 
 ---
 
-## Session Management
+## Backend Setup
 
-- When a user logs in or signs up, a session is created on the server.
-- `check_session` is used on initial load to verify if a user is still logged in.
-- On logout, the session is destroyed server-side and the frontend state is cleared.
+Create and activate a virtual environment:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+Install dependencies:
+
+```bash
+pip install flask flask-sqlalchemy flask-migrate flask-bcrypt flask-cors sqlalchemy-serializer
+```
+
+Run database migrations:
+
+```bash
+cd server
+
+python -m flask --app app db upgrade
+```
+
+Seed the database:
+
+```bash
+python seed.py
+```
+
+Start the Flask server:
+
+```bash
+python -m flask --app app run --port 5555
+```
 
 ---
 
-## Custom Resource Endpoints
+## Frontend Setup
 
-This frontend does **not include fetch calls** for your custom resource (e.g., `/notes`, `/entries`, `/tasks`). These will be added by the frontend team after your backend is complete.
+Open another terminal:
 
-Ensure your resource routes:
-- Are fully protected: require login to access.
-- Use `session['user_id']` to associate and filter data per user.
-- Follow RESTful patterns: `GET`, `POST`, `PATCH`, `DELETE`.
-- Include pagination support where appropriate (e.g., `GET /notes?page=1&per_page=10`).
+```bash
+cd client-with-sessions
+
+npm install
+npm start
+```
+
+The React application will launch at:
+
+```
+http://localhost:4000
+```
+
+---
+
+## Testing
+
+The backend was tested using:
+
+* Browser
+* curl
+* React Client
+
+Verified functionality:
+
+* User signup
+* User login
+* Logout
+* Session persistence
+* Protected routes
+* Pagination
+* Create task
+* Read tasks
+* Update task
+* Delete task
+
+---
+
+## Project Structure
+
+```
+server/
+│
+├── app.py
+├── config.py
+├── models.py
+├── seed.py
+├── migrations/
+│
+client-with-sessions/
+│
+├── src/
+│   ├── components/
+│   ├── pages/
+│   └── styles/
+```
+
+---
+
+## Future Improvements
+
+* Due dates
+* Task categories
+* Search and filtering
+* Sorting
+* Task reminders
+* JWT authentication version
+* Deployment to Render or Railway
 
 ---
