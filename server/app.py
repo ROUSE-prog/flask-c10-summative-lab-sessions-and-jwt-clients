@@ -1,4 +1,4 @@
-from flask import request, session, make_response
+from flask import request, session
 from config import app, db
 from models import User, Task
 
@@ -12,10 +12,16 @@ def home():
 def signup():
     data = request.get_json()
 
+    if data.get("password") != data.get("password_confirmation"):
+        return {"errors": ["Passwords do not match."]}, 422
+
+    if User.query.filter_by(username=data.get("username")).first():
+        return {"errors": ["Username already exists."]}, 422
+
     try:
         user = User(
             username=data.get("username"),
-            email=data.get("email"),
+            email=f'{data.get("username")}@example.com',
         )
         user.password = data.get("password")
 
@@ -24,11 +30,11 @@ def signup():
 
         session["user_id"] = user.id
 
-        return user.to_dict(), 201
+        return user.to_dict(rules=("tasks",)), 201
 
     except Exception as e:
         db.session.rollback()
-        return {"error": str(e)}, 400
+        return {"errors": [str(e)]}, 422
 
 
 @app.route("/login", methods=["POST"])
@@ -39,9 +45,9 @@ def login():
 
     if user and user.authenticate(data.get("password")):
         session["user_id"] = user.id
-        return user.to_dict(), 200
+        return user.to_dict(rules=("tasks",)), 200
 
-    return {"error": "Invalid username or password."}, 401
+    return {"errors": ["Invalid username or password"]}, 401
 
 
 @app.route("/logout", methods=["DELETE"])
@@ -50,12 +56,22 @@ def logout():
     return {}, 204
 
 
-@app.route("/me")
+@app.route("/check_session", methods=["GET"])
+def check_session():
+    user = User.query.get(session.get("user_id"))
+
+    if not user:
+        return {"errors": ["Unauthorized"]}, 401
+
+    return user.to_dict(rules=("tasks",)), 200
+
+
+@app.route("/me", methods=["GET"])
 def me():
     user = User.query.get(session.get("user_id"))
 
     if not user:
-        return {"error": "Unauthorized."}, 401
+        return {"errors": ["Unauthorized"]}, 401
 
     return user.to_dict(rules=("tasks",)), 200
 
@@ -65,7 +81,7 @@ def tasks():
     user = User.query.get(session.get("user_id"))
 
     if not user:
-        return {"error": "Unauthorized."}, 401
+        return {"errors": ["Unauthorized"]}, 401
 
     if request.method == "GET":
         page = request.args.get("page", 1, type=int)
@@ -103,7 +119,7 @@ def tasks():
 
     except Exception as e:
         db.session.rollback()
-        return {"error": str(e)}, 400
+        return {"errors": [str(e)]}, 400
 
 
 @app.route("/tasks/<int:id>", methods=["GET", "PATCH", "DELETE"])
@@ -111,12 +127,12 @@ def task_by_id(id):
     user = User.query.get(session.get("user_id"))
 
     if not user:
-        return {"error": "Unauthorized."}, 401
+        return {"errors": ["Unauthorized"]}, 401
 
     task = Task.query.filter_by(id=id, user_id=user.id).first()
 
     if not task:
-        return {"error": "Task not found."}, 404
+        return {"errors": ["Task not found."]}, 404
 
     if request.method == "GET":
         return task.to_dict(), 200
@@ -134,7 +150,7 @@ def task_by_id(id):
 
         except Exception as e:
             db.session.rollback()
-            return {"error": str(e)}, 400
+            return {"errors": [str(e)]}, 400
 
     db.session.delete(task)
     db.session.commit()
